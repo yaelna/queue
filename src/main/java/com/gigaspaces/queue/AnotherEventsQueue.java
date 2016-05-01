@@ -1,57 +1,54 @@
 package com.gigaspaces.queue;
 
-import com.sun.org.apache.regexp.internal.RE;
-
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 
-import static com.gigaspaces.queue.Op.CREATE;
-
 /**
- * Created by Barak Bar Orion
- * on 3/30/16.
- *
- * @since 11.0
+ * Created by yaeln
+ * on 4/5/16.
  */
-public class EventsQueue<T extends Event> implements BlockingQueue<T> {
+public class AnotherEventsQueue<T extends Event> implements BlockingQueue<T> {
     private List<T> data = new ArrayList<>();
     private HashMap RecentOperation= new HashMap();
+    private int SIZE;
 
-    public EventsQueue() {
-
+    public AnotherEventsQueue(int size) {
+         SIZE = size;
     }
-
     @Override
     public synchronized T get() throws InterruptedException {
-        System.out.println("IN GET, PID: "+Thread.currentThread().getId());
         while(data.isEmpty()){
+            System.out.println("WAITING IN GET, PID: "+Thread.currentThread().getId());
             wait();
         }
+        notifyAll();
         return data.remove(0);
     }
-
     @Override
     public synchronized void put(T t) throws InterruptedException {
-        System.out.println("IN PUT, PID: "+Thread.currentThread().getId());
-        Event e = t;
-        boolean shouldBeAdded = compress(e);
-        if(shouldBeAdded){
-            data.add(t);
-            if(data.size()>Main.MAX_SIZE){
-                    Main.setMax(data.size());
-            }
-            System.out.println("size: " + data.size());
-        }
-        notifyAll();
-    }
 
+        boolean shouldBeAdded = true;
+            if(data.size() == SIZE){
+                Event e = t;
+                shouldBeAdded = compress(e);
+            }
+            while (SIZE <= data.size()){
+                System.out.println("WAITING IN PUT, PID: "+Thread.currentThread().getId());
+                wait();
+            }
+            if (shouldBeAdded) {
+                data.add(t);
+                /*if(data.size()>Main.MAX_SIZE){
+                    Main.setMax(data.size());
+                }*/
+            }
+            notifyAll();
+        }
     //return true if the event should be added
     private synchronized boolean compress(Event e) {
-        System.out.println("IN COMPRESS, PID: "+Thread.currentThread().getId());
+        System.out.println("IN COMP, PID: "+Thread.currentThread().getId());
         // first time operation
-        System.out.println("size: " + data.size());
         if (!RecentOperation.containsKey(e.getId())) {
             RecentOperation.put(e.getId(), e.getOperation());
             return true;
@@ -66,7 +63,6 @@ public class EventsQueue<T extends Event> implements BlockingQueue<T> {
             return shouldAddToQueue(e);
         }
     }
-
     private Boolean shouldAddToQueue(Event e) {
         Op newOp = e.getOperation();
         switch (newOp) {
@@ -103,6 +99,8 @@ public class EventsQueue<T extends Event> implements BlockingQueue<T> {
 
     @Override
     public String toString() {
-        return data.toString();
-    }
+            return data.toString();
+        }
 }
+
+

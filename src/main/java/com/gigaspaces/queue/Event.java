@@ -1,5 +1,6 @@
 package com.gigaspaces.queue;
 
+
 /**
  * Created by Barak Bar Orion
  * on 3/30/16.
@@ -21,5 +22,16 @@ public class Event{
 
     public Op getOperation() {
         return operation;
+    }
+
+    @Override
+    public String toString(){
+        return "Event id: " + this.id + ", Operation: " + this.operation;
+    }
+
+    @Override
+    public boolean equals(java.lang.Object obj) {
+        Event e = (Event) obj;
+        return ((this.id == e.getId()) && (this.operation == e.getOperation()));
     }
 }
